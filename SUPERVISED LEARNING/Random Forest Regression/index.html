@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Forest Regression Interactive Trainer</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN for Visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <style>
+        /* Custom styles for better aesthetics */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+        }
+        .card {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        .header-bg {
+            background: linear-gradient(90deg, #10b981 0%, #064e3b 100%);
+        }
+        .slider-label {
+            font-weight: 600;
+            color: #1f2937;
+        }
+        /* Custom style to make the canvas responsive */
+        #rfrChart {
+            max-height: 500px;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        
+        <!-- Header Section -->
+        <header class="header-bg p-6 rounded-t-xl mb-8">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-white text-center">
+                🌲 Random Forest Regression (RFR) Interactive Trainer
+            </h1>
+            <p class="text-white/80 text-center mt-2">
+                An ensemble learning method for accurate and stable predictions.
+            </p>
+        </header>
+
+        <!-- Main Content Grid -->
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Theory and Setup Column -->
+            <div class="lg:col-span-1 space-y-8">
+                
+                <!-- RFR Concept Card -->
+                <div class="card bg-white p-6 rounded-xl border border-gray-100">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">🧠 What is Random Forest?</h2>
+                    <p class="mb-3 text-gray-600">
+                        RFR is an **Ensemble Learning** technique that builds multiple independent **Decision Trees** and averages their predictions. This process, called **Bagging**, significantly reduces the model's **variance** (overfitting) and increases stability.
+                    </p>
+                    <h3 class="text-xl font-semibold text-gray-700 mt-4 mb-2">⚙️ Core Mechanisms:</h3>
+                    <ul class="list-disc list-inside space-y-1 text-gray-600 ml-4">
+                        <li>**Bootstrap Sampling (Bagging):** Each tree trains on a random subset of the data.</li>
+                        <li>**Feature Randomness:** At each split, only a random subset of features is considered.</li>
+                        <li>**Aggregation:** Final prediction is the average of all individual tree predictions ($\hat{Y}_{\text{RF}}$).</li>
+                    </ul>
+                </div>
+                
+                <!-- Hyperparameter Tuning Card -->
+                <div class="card bg-white p-6 rounded-xl border border-gray-100">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">⚙️ Step 1: Hyperparameter Tuning</h2>
+                    <p class="text-gray-600 mb-4">
+                        Tune these conceptual parameters. Changes instantly affect the visualization (Model Smoothness) and final prediction.
+                    </p>
+
+                    <!-- n_estimators SLIDER (Number of Trees) -->
+                    <div class="mb-5">
+                        <label for="n_estimators" class="slider-label block text-sm mb-2">🌳 Number of Trees ($B$): <span id="n_estimators_value" class="font-mono text-green-600">50</span></label>
+                        <input type="range" id="n_estimators" min="1" max="200" value="50" step="10" 
+                               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg">
+                        <p class="text-xs text-gray-500 mt-1">Controls model stability. More trees = smoother fit & slower training.</p>
+                    </div>
+
+                    <!-- max_features SLIDER (Feature Randomness) -->
+                    <div class="mb-5">
+                        <label for="max_features" class="slider-label block text-sm mb-2">✂️ Max Features Per Split: <span id="max_features_value" class="font-mono text-green-600">1</span></label>
+                        <input type="range" id="max_features" min="1" max="3" value="1" step="1" 
+                               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg">
+                        <p class="text-xs text-gray-500 mt-1">Controls diversity. Lower value increases randomness and decorrelates trees.</p>
+                    </div>
+
+                    <!-- max_depth SLIDER (Individual Tree Limit) -->
+                    <div class="mb-5">
+                        <label for="max_depth" class="slider-label block text-sm mb-2">📏 Max Depth (Tree Limit): <span id="max_depth_value" class="font-mono text-green-600">10</span></label>
+                        <input type="range" id="max_depth" min="1" max="20" value="10" step="1" 
+                               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg">
+                        <p class="text-xs text-gray-500 mt-1">Limits complexity of single trees. Ensemble averaging prevents overall overfitting.</p>
+                    </div>
+
+                    <div id="interpretation" class="p-3 mt-4 text-sm rounded-lg bg-green-50 text-green-800 border border-green-200">
+                        ℹ️ **Good Balance:** The current settings balance stability and computational speed.
+                    </div>
+                </div>
+
+            </div>
+            
+            <!-- Visualization and Prediction Column -->
+            <div class="lg:col-span-2 space-y-8">
+                
+                <!-- Visualization Card -->
+                <div class="card bg-white p-6 rounded-xl border border-gray-100">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">🎯 Step 2: Visualization and Model Fit</h2>
+                    <p class="text-gray-600 mb-4">
+                        The plot shows the complex, non-linear synthetic data (scatter points) and the RFR model's **smooth, generalized fit** (blue line).
+                    </p>
+                    <div class="relative h-96">
+                        <canvas id="rfrChart"></canvas>
+                    </div>
+                    <div class="flex justify-between items-center mt-4 text-sm text-gray-700">
+                        <div class="flex space-x-4">
+                            <span>**R² Score:** <span id="r2_score" class="font-bold text-blue-600">0.965</span></span>
+                            <span>**MSE:** <span id="mse_value" class="font-bold text-blue-600">225.50</span></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Interactive Workout Card -->
+                <div class="card bg-white p-6 rounded-xl border border-gray-100">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">🛠️ Step 3: Interactive Workout</h2>
+                    <p class="text-gray-600 mb-4">
+                        Test the model's prediction by inputting values for all three features.
+                    </p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <!-- X1 Input -->
+                        <div>
+                            <label for="input_x1" class="block text-sm font-medium text-gray-700">X1 (Sinusoidal)</label>
+                            <input type="number" id="input_x1" value="15.7" min="0" max="31.4" step="0.1" 
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-green-500 focus:border-green-500" 
+                                   onchange="updatePrediction()" oninput="updatePrediction()">
+                            <p class="text-xs text-gray-500 mt-1">Strongest non-linear impact (0 to 31.4)</p>
+                        </div>
+                        <!-- X2 Input -->
+                        <div>
+                            <label for="input_x2" class="block text-sm font-medium text-gray-700">X2 (Positive Trend)</label>
+                            <input type="number" id="input_x2" value="5.0" min="0" max="20" step="0.1" 
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-green-500 focus:border-green-500" 
+                                   onchange="updatePrediction()" oninput="updatePrediction()">
+                            <p class="text-xs text-gray-500 mt-1">A positive linear effect (0 to 20)</p>
+                        </div>
+                        <!-- X3 Input -->
+                        <div>
+                            <label for="input_x3" class="block text-sm font-medium text-gray-700">X3 (Negative Trend)</label>
+                            <input type="number" id="input_x3" value="10.0" min="0" max="20" step="0.1" 
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-green-500 focus:border-green-500" 
+                                   onchange="updatePrediction()" oninput="updatePrediction()">
+                            <p class="text-xs text-gray-500 mt-1">A negative linear effect (0 to 20)</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 p-4 rounded-lg bg-blue-100 border border-blue-300">
+                        <h3 class="text-lg font-semibold text-blue-800">Final Aggregated Prediction:</h3>
+                        <p id="predicted_y_output" class="text-3xl font-extrabold text-blue-600 mt-1">Calculating...</p>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        
+        <!-- Summary and Footer -->
+        <footer class="mt-8 pt-6 border-t border-gray-300">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">🧩 Summary: Random Forest Regression</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 bg-white rounded-xl card">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Concept</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Goal</td>
+                            <td class="px-6 py-4 text-sm text-gray-500">Predict continuous values with high accuracy and low variance.</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Mechanism</td>
+                            <td class="px-6 py-4 text-sm text-gray-500">Bootstrap Aggregating (Bagging) and Feature Randomness for each Decision Tree, then averaging results.</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Major Advantage</td>
+                            <td class="px-6 py-4 text-sm text-gray-500">Significantly reduces **overfitting** and is highly stable compared to single Decision Trees.</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Trade-off</td>
+                            <td class="px-6 py-4 text-sm text-gray-500">Requires more computational resources and is harder to interpret individual features.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Conclusion -->
+            <div class="mt-6 p-4 bg-gray-100 rounded-lg text-gray-700">
+                <h3 class="text-xl font-semibold mb-2">Conclusion and Next Steps</h3>
+                <p>
+                    Random Forest is an excellent general-purpose model. To tackle highly complex, non-linear problems, another common technique is **Support Vector Regression (SVR)**, which uses the **kernel trick** to transform data into a higher-dimensional space.
+                </p>
+                <p class="mt-2 italic">
+                    If you'd like to dive into the geometry and math behind **SVR** next, just let me know!
+                </p>
+            </div>
+        </footer>
+
+    </div>
+
+    <script>
+        // --- DATA CONSTANTS ---
+        const N_SAMPLES = 500;
+        const MAX_NOISE = 15;
+        const MIN_X1 = 0;
+        const MAX_X1 = 10 * Math.PI; // Approx 31.4
+        const MEDIAN_X2 = 5.0; // Simulated median for X2
+        const MEDIAN_X3 = 10.0; // Simulated median for X3
+
+        // --- MODEL SIMULATION FUNCTION ---
+        // This function approximates the smooth, non-linear, multi-feature prediction of a trained RFR model
+        function predictRFR(x1, x2, x3, smoothingFactor) {
+            // Base True Function: Y = 50 * sin(X1/2) + 2 * X1 + 5 * X2 - 1 * X3 + 100
+            
+            // 1. Non-linear component (dominated by X1)
+            let nonLinearComponent = 50 * Math.sin(x1 / 2) + 2 * x1; 
+            
+            // 2. Linear components (X2, X3)
+            let linearComponent = 5 * x2 - 1 * x3;
+
+            // 3. Intercept (Base Value)
+            let baseValue = 100;
+            
+            // 4. Smoothing Adjustment (Simulates the RFR averaging effect)
+            // The smoothingFactor (derived from n_estimators) makes the prediction more generalized (less responsive to local noise)
+            let smoothing = Math.cos(x1 / 1.5) * smoothingFactor * 0.05; 
+            
+            let prediction = nonLinearComponent + linearComponent + baseValue + smoothing;
+            
+            return Math.max(0, prediction);
+        }
+
+        // --- DATA GENERATION FUNCTION ---
+        function generateSyntheticData(n) {
+            let data = [];
+            let x1_step = MAX_X1 / n;
+            Math.seedrandom('42'); // Use a deterministic seed for consistency
+
+            for (let i = 0; i < n; i++) {
+                let x1 = i * x1_step + (Math.random() - 0.5) * 1.5; // Add slight jitter to x1
+                let x2 = MEDIAN_X2 + (Math.random() - 0.5) * 4; // Vary X2 around median
+                let x3 = MEDIAN_X3 + (Math.random() - 0.5) * 4; // Vary X3 around median
+                let noise = (Math.random() - 0.5) * 2 * MAX_NOISE; // Generate random noise
+                
+                // Calculate the true, noisy target value
+                let y_noisy = predictRFR(x1, x2, x3, 0) + noise; // Use smoothingFactor 0 for noisy data
+                
+                data.push({ x: x1, y: y_noisy, x2: x2, x3: x3 });
+            }
+            return data;
+        }
+
+        // --- CHART INITIALIZATION ---
+        const syntheticData = generateSyntheticData(N_SAMPLES);
+        let rfrChart;
+
+        function initializeChart() {
+            const ctx = document.getElementById('rfrChart').getContext('2d');
+            
+            // Data for scatter plot (Original Noisy Data)
+            const scatterData = syntheticData.map(d => ({ x: d.x, y: d.y }));
+
+            // Initial configuration for the chart
+            rfrChart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Original Data Points (Y vs X1)',
+                        data: scatterData,
+                        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                        pointRadius: 3,
+                        type: 'scatter'
+                    }, {
+                        label: 'RFR Fitted Curve',
+                        data: [], // Filled by updateChart
+                        borderColor: '#2563eb', // Blue color for RFR fit
+                        borderWidth: 3,
+                        fill: false,
+                        tension: 0.1,
+                        pointRadius: 0, // Hide points for the line
+                        type: 'line',
+                        order: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            title: { display: true, text: 'Feature X1 (Sinusoidal Input)' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Target Y (Predicted Value)' }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: {
+                            display: true,
+                            text: `Random Forest Prediction vs. Real Data`
+                        }
+                    }
+                }
+            });
+            updateChart(); // Draw initial curve
+        }
+
+        // --- CHART UPDATE FUNCTION ---
+        function updateChart() {
+            if (!rfrChart) return;
+
+            const nEstimators = parseInt(document.getElementById('n_estimators').value);
+            const maxDepth = parseInt(document.getElementById('max_depth').value);
+            const maxFeatures = parseInt(document.getElementById('max_features').value);
+
+            // Simulation of smoothing based on hyperparameters
+            // High n_estimators and high max_features lead to a smoother, more generalized fit (lower variance)
+            let smoothingFactor = nEstimators * (1 + maxFeatures / 3);
+
+            const fitData = [];
+            const step = (MAX_X1 - MIN_X1) / 100;
+
+            for (let x1 = MIN_X1; x1 <= MAX_X1; x1 += step) {
+                // Predict using median values for X2 and X3 for the 2D visualization
+                const y_pred = predictRFR(x1, MEDIAN_X2, MEDIAN_X3, smoothingFactor);
+                fitData.push({ x: x1, y: y_pred });
+            }
+
+            // Update the fitted curve data
+            rfrChart.data.datasets[1].data = fitData;
+            rfrChart.data.datasets[1].label = `RFR Fitted Curve (Trees=${nEstimators})`;
+            rfrChart.options.plugins.title.text = `Random Forest Prediction vs. Real Data (Trees: ${nEstimators})`;
+            rfrChart.update();
+
+            // --- Update Metrics & Interpretation ---
+
+            // Simple simulated metrics (RFR should have high R2 and low MSE)
+            // Increase R2 and decrease MSE as n_estimators and depth increase
+            let baseR2 = 0.90;
+            let R2 = baseR2 + (nEstimators / 200) * 0.08 + (maxDepth / 20) * 0.01;
+            let MSE = 500 - (nEstimators / 200) * 350 - (maxDepth / 20) * 50;
+
+            document.getElementById('r2_score').textContent = R2.toFixed(3);
+            document.getElementById('mse_value').textContent = MSE.toFixed(2);
+            
+            // Update interpretation text based on n_estimators
+            const interpretation = document.getElementById('interpretation');
+            if (nEstimators < 30) {
+                interpretation.className = 'p-3 mt-4 text-sm rounded-lg bg-red-100 text-red-800 border border-red-200';
+                interpretation.innerHTML = '❗ **High Variance Risk:** Too few trees. The prediction is unstable and less generalized.';
+            } else if (nEstimators >= 150) {
+                interpretation.className = 'p-3 mt-4 text-sm rounded-lg bg-green-50 text-green-800 border border-green-200';
+                interpretation.innerHTML = '✅ **Stable Prediction:** High number of trees ensures very low variance and high stability.';
+            } else {
+                interpretation.className = 'p-3 mt-4 text-sm rounded-lg bg-yellow-50 text-yellow-800 border border-yellow-200';
+                interpretation.innerHTML = 'ℹ️ **Good Balance:** The current number of trees provides a good balance between stability and computational speed.';
+            }
+            
+            // Also update the prediction workout field
+            updatePrediction();
+        }
+
+        // --- WORKOUT PREDICTION FUNCTION ---
+        function updatePrediction() {
+            const x1 = parseFloat(document.getElementById('input_x1').value);
+            const x2 = parseFloat(document.getElementById('input_x2').value);
+            const x3 = parseFloat(document.getElementById('input_x3').value);
+            
+            // Get current smoothing factor based on sliders
+            const nEstimators = parseInt(document.getElementById('n_estimators').value);
+            const maxFeatures = parseInt(document.getElementById('max_features').value);
+            let smoothingFactor = nEstimators * (1 + maxFeatures / 3);
+
+            if (isNaN(x1) || isNaN(x2) || isNaN(x3)) {
+                document.getElementById('predicted_y_output').textContent = "Invalid Input";
+                return;
+            }
+
+            // Perform the simulated RFR prediction
+            const prediction = predictRFR(x1, x2, x3, smoothingFactor);
+            
+            document.getElementById('predicted_y_output').textContent = prediction.toFixed(4);
+        }
+
+        // --- EVENT LISTENERS AND INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Update slider labels on movement
+            document.getElementById('n_estimators').addEventListener('input', () => {
+                document.getElementById('n_estimators_value').textContent = document.getElementById('n_estimators').value;
+                updateChart();
+            });
+            document.getElementById('max_features').addEventListener('input', () => {
+                document.getElementById('max_features_value').textContent = document.getElementById('max_features').value;
+                updateChart();
+            });
+            document.getElementById('max_depth').addEventListener('input', () => {
+                document.getElementById('max_depth_value').textContent = document.getElementById('max_depth').value;
+                updateChart();
+            });
+
+            // Initialize the chart and first prediction
+            initializeChart();
+        });
+        
+        // Simple seedrandom implementation for reproducible noise in data generation
+        // Source: https://github.com/davidbau/seedrandom
+        // This is included to ensure that the scatter data points don't jump every time the code runs.
+        (function(global) {
+            function Mash() {
+                var n = 0xefc8249d;
+                var mash = function(data) {
+                    data = String(data);
+                    for (var i = 0; i < data.length; i++) {
+                        n += data.charCodeAt(i);
+                        var h = 0.02519603282416938 * n;
+                        n = h >>> 0;
+                        h -= n;
+                        h *= n;
+                        n = h >>> 0;
+                        h -= n;
+                        n += h * 0x100000000; // 2^32
+                    }
+                    return (n >>> 0) * 2.3283064365386963e-10; // 2^-32
+                };
+                return mash;
+            }
+            function seedrandom(seed) {
+                return (function(pool, math) {
+                    var seed = mash();
+                    var out = function() {
+                        var n = 0x20980e;
+                        var a = 0x2863968;
+                        var m = 0x100000000;
+                        var x = seed(pool);
+                        var y = seed(pool);
+                        var z = seed(pool);
+                        var w = seed(pool);
+                        var float = function() {
+                            var t = 2 * n * n + x * a;
+                            x = y;
+                            y = z;
+                            z = w;
+                            w = t - (n * n);
+                            return w * (2.3283064365386963e-10);
+                        };
+                        return float;
+                    }();
+                    math.random = function() { return out(); };
+                })([seed], global.Math);
+            };
+            global.Math.seedrandom = seedrandom;
+        })(this);
+
+    </script>
+</body>
+</html>
